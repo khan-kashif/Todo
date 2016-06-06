@@ -14,24 +14,26 @@
 
     <ListView
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_height="match_parent"
         android:id="@+id/list_view_main"
         android:divider="#FF0000"
-        android:dividerHeight="2.0sp">
+        android:dividerHeight="2.0sp"
+        android:layout_above="@+id/bottom_buttons">
     </ListView>
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
-        android:layout_alignParentBottom="true">
+        android:layout_alignParentBottom="true"
+        android:id="@+id/bottom_buttons"
+        android:visibility="invisible">
 
     <Button
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:id="@+id/delete_button"
         android:text="@string/delete"
-        android:visibility="invisible"
         android:layout_weight=".50"
         />
 
@@ -40,10 +42,11 @@
         android:layout_height="wrap_content"
         android:id="@+id/cancel_button"
         android:text="@string/cancel"
-        android:visibility="invisible"
         android:layout_weight=".50"
         />
 
     </LinearLayout>
+
+
 
 </RelativeLayout>

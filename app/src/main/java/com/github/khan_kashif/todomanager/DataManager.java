@@ -2,6 +2,7 @@ package com.github.khan_kashif.todomanager;
 
 import android.app.Application;
 import android.content.Context;
+import android.content.Intent;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -16,6 +17,7 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
 
 /**
@@ -23,7 +25,9 @@ import java.util.List;
  */
 public class DataManager {
 
-    public static List<TodoItem> TodoItems;
+    public static boolean IsDataReady = false;
+
+    public static HashMap<Integer, TodoItem> TodoItems;
 
     private static String fileName = "tasks";
     public static String DateTimeFormat;
@@ -34,22 +38,39 @@ public class DataManager {
 
     public static boolean IsDeleteMode = false;
 
-    public static void SetupDateFormat(Application application){
-        SimpleDateFormat dateFormat = ((SimpleDateFormat) android.text.format.DateFormat.getDateFormat(application));
-        SimpleDateFormat timeFormat = ((SimpleDateFormat) android.text.format.DateFormat.getTimeFormat(application));
+    private static int NextID = 0;
+
+    public static int GetNextID(){
+        return ++NextID;
+    }
+
+    public static TodoItem GetTodoItem(int position) {
+        return new ArrayList<TodoItem>(TodoItems.values()).get(position);
+    }
+
+    public static void Setup(Context context) {
+        SetupDateFormat(context);
+        GetTodoItems(context);
+
+        IsDataReady = true;
+    }
+
+    public static void SetupDateFormat(Context context){
+        SimpleDateFormat dateFormat = ((SimpleDateFormat) android.text.format.DateFormat.getDateFormat(context));
+        SimpleDateFormat timeFormat = ((SimpleDateFormat) android.text.format.DateFormat.getTimeFormat(context));
 
         DateTimeFormat = dateFormat.toLocalizedPattern() + " " + timeFormat.toLocalizedPattern();
         DateFormat = dateFormat.toLocalizedPattern();
         TimeFormat = timeFormat.toLocalizedPattern();
     }
 
-    public static void GetTodoItems(Application application) {
-        TodoItems = new ArrayList<>();
+    public static void GetTodoItems(Context context) {
+        TodoItems = new HashMap<>();
 
         String jsonData = null;
 
         try{
-            FileInputStream fis = application.openFileInput(fileName);
+            FileInputStream fis = context.openFileInput(fileName);
             BufferedReader reader = new BufferedReader(new InputStreamReader(fis));
 
             StringBuilder temp = new StringBuilder();
@@ -71,57 +92,70 @@ public class DataManager {
             TodoItems = ParseJsonData(jsonData);
     }
 
-    public static List<TodoItem> ParseJsonData(String jsonData) {
+    public static HashMap<Integer, TodoItem> ParseJsonData(String jsonData) {
 
-        List<TodoItem> result = new ArrayList<>();
+        HashMap<Integer, TodoItem> result = new HashMap<Integer, TodoItem>();
 
         JSONArray jArray = null;
 
         try {
             jArray = new JSONArray(jsonData);
         } catch (JSONException e) {
-            return new ArrayList<TodoItem>();
+            return result;
         }
 
         for (int i=0; i< jArray.length(); i++){
 
             JSONObject jObject;
+            int id;
             String title;
-            String reminder;
-            Date reminderDate;
+            String reminder = null;
+            boolean hasReminder;
+            Date reminderDate = null;
 
             try {
                 jObject = jArray.getJSONObject(i);
+                id = jObject.getInt("id");
                 title = jObject.getString("title");
-                reminder = jObject.getString("reminder");
+                hasReminder = jObject.getBoolean("hasReminder");
+
+                if(hasReminder)
+                    reminder = jObject.getString("reminder");
             } catch (JSONException e) {
                 continue;
             }
 
-            SimpleDateFormat dateFormat = new SimpleDateFormat(SaveDateFormat);
+            if(hasReminder) {
+                SimpleDateFormat dateFormat = new SimpleDateFormat(SaveDateFormat);
 
-            try {
-                reminderDate = dateFormat.parse(reminder);
-            } catch (ParseException e) {
-                continue;
+                try {
+                    reminderDate = dateFormat.parse(reminder);
+                } catch (ParseException e) {
+                    continue;
+                }
             }
 
-            TodoItem todoItem = new TodoItem(title, reminderDate);
-            result.add(todoItem);
+            TodoItem todoItem = new TodoItem(id, title, reminderDate, hasReminder);
+            result.put(id, todoItem);
 
+            NextID = todoItem.ID;
         }
 
         return result;
     }
 
-    public static void SaveTodoItems(Application application){
+    public static void SaveTodoItems(Context context){
         JSONArray jArray = new JSONArray();
 
-        for(int i=0; i< TodoItems.size(); i++){
+        for(int i: TodoItems.keySet()){
             JSONObject jsonObject = new JSONObject();
             try{
+                jsonObject.put("id", TodoItems.get(i).ID);
                 jsonObject.put("title", TodoItems.get(i).Title);
-                jsonObject.put("reminder", TodoItems.get(i).GetReminderString(SaveDateFormat));
+                jsonObject.put("hasReminder", TodoItems.get(i).HasReminder);
+
+                if(TodoItems.get(i).HasReminder)
+                    jsonObject.put("reminder", TodoItems.get(i).GetReminderString(SaveDateFormat));
 
                 jArray.put(jsonObject);
             }catch (Exception e){
@@ -132,7 +166,7 @@ public class DataManager {
         String jString = jArray.toString();
 
         try{
-            FileOutputStream fos = application.openFileOutput(fileName, Context.MODE_PRIVATE);
+            FileOutputStream fos = context.openFileOutput(fileName, Context.MODE_PRIVATE);
             fos.write(jString.getBytes());
             fos.close();
         }
@@ -143,12 +177,17 @@ public class DataManager {
 
     public static void DeleteTodoItems(Application application){
 
-        List<TodoItem> temp = new ArrayList<>();
-        temp.addAll(TodoItems);
+        HashMap<Integer, TodoItem> temp = new HashMap<>();
+        temp.putAll(TodoItems);
 
-        for(int i= temp.size() - 1; i > -1; i--) {
-            if(temp.get(i).MarkForDelete)
+        for(int i: temp.keySet()) {
+            if(temp.get(i).MarkForDelete) {
+
+                if(TodoItems.get(i).HasReminder)
+                    ReminderManager.CancelReminder(TodoItems.get(i), application);
+
                 TodoItems.remove(i);
+            }
         }
 
         SaveTodoItems(application);
@@ -159,9 +198,17 @@ public class DataManager {
 
         if(mode)
         {
-            for(int i= 0; i < TodoItems.size(); i++) {
+            for(int i : TodoItems.keySet()) {
                 TodoItems.get(i).MarkForDelete = false;
             }
         }
+    }
+
+    public static String GetDateString(Date date){
+        return new SimpleDateFormat(DataManager.DateFormat).format(date);
+    }
+
+    public static String GetTimeString(Date date){
+        return new SimpleDateFormat(DataManager.TimeFormat).format(date);
     }
 }

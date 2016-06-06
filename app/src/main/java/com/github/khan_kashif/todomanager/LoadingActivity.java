@@ -11,8 +11,9 @@ public class LoadingActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_loading);
 
-        DataManager.SetupDateFormat(getApplication());
-        DataManager.GetTodoItems(getApplication());
+        if(!DataManager.IsDataReady) {
+            DataManager.Setup(getApplication());
+        }
 
         Thread timer = new Thread() {
             @Override
@@ -21,21 +22,19 @@ public class LoadingActivity extends AppCompatActivity {
                     sleep(500);
                     // showing the main screen
                 } catch (InterruptedException e) {
-                } finally {
-                    finish();
+                }finally {
+                    NavigateToMainActivity();
                 }
             }
         };
+
         timer.start();
     }
 
-    @Override
-    public void finish(){
-
+    public void NavigateToMainActivity(){
         Intent navigateToMain = new Intent(this, MainActivity.class);
         startActivity(navigateToMain);
 
-        super.finish();
+        finish();
     }
-
 }

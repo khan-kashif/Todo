@@ -1,7 +1,12 @@
 package com.github.khan_kashif.todomanager;
 
 import android.app.DatePickerDialog;
+import android.app.Notification;
+import android.app.NotificationManager;
+import android.app.PendingIntent;
 import android.app.TimePickerDialog;
+import android.content.Context;
+import android.content.Intent;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.support.v7.widget.Toolbar;
@@ -9,12 +14,13 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.Button;
+import android.widget.CheckBox;
 import android.widget.DatePicker;
 import android.widget.EditText;
-import android.widget.TextView;
+import android.widget.LinearLayout;
 import android.widget.TimePicker;
+import android.widget.Toast;
 
-import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Date;
@@ -22,12 +28,17 @@ import java.util.Date;
 public class ToDoEdit extends AppCompatActivity {
 
     TodoApplication todoApplication;
-    int position;
+    int idTodoItem;
 
     EditText titleEdit;
     Button dateEdit, timeEdit;
+    CheckBox reminderCheck;
 
     TodoItem todoItem;
+
+    LinearLayout viewReminder;
+
+    Date dateToUse;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -38,17 +49,37 @@ public class ToDoEdit extends AppCompatActivity {
 
         todoApplication = (TodoApplication)getApplication();
 
-        position = getIntent().getIntExtra("position", -1);
-        if(position == -1)
-            todoItem = new TodoItem("", new Date());
+        idTodoItem = getIntent().getIntExtra("idTodoItem", -1);
+        if(idTodoItem == -1) {
+            todoItem = new TodoItem(DataManager.GetNextID(), "", new Date(), false);
+            idTodoItem = todoItem.ID;
+        }
         else
-            todoItem = DataManager.TodoItems.get(position);
+            todoItem = DataManager.TodoItems.get(idTodoItem);
+
+        if(todoItem == null) {
+            finish();
+            return;
+        }
+
+        dateToUse = new Date();
+        if(todoItem.Reminder != null)
+            dateToUse = todoItem.Reminder;
+
+        reminderCheck = (CheckBox)findViewById(R.id.task_has_reminder);
+        reminderCheck.setChecked(todoItem.HasReminder);
+        reminderCheck.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                UpdateReminderControl();
+            }
+        });
 
         titleEdit = (EditText)findViewById(R.id.title_edit);
         titleEdit.setText(todoItem.Title);
 
         Calendar calendar = Calendar.getInstance();
-        calendar.setTime(todoItem.Reminder);
+        calendar.setTime(dateToUse);
 
         final int year = calendar.get(Calendar.YEAR);
         final int month = calendar.get(Calendar.MONTH);
@@ -56,9 +87,7 @@ public class ToDoEdit extends AppCompatActivity {
         final int hour = calendar.get(Calendar.HOUR_OF_DAY);
         final int minute = calendar.get(Calendar.MINUTE);
 
-
         dateEdit = (Button)findViewById(R.id.date_edit);
-        dateEdit.setText(todoItem.GetDateString());
         dateEdit.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -67,19 +96,30 @@ public class ToDoEdit extends AppCompatActivity {
         });
 
         timeEdit = (Button)findViewById(R.id.time_edit);
-        timeEdit.setText(todoItem.GetTimeString());
         timeEdit.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 new TimePickerDialog(ToDoEdit.this, new TimeSetListener(todoApplication, timeEdit), hour, minute, true).show();
             }
         });
+
+        viewReminder = (LinearLayout)findViewById(R.id.view_reminder);
+        UpdateReminderControl();
+    }
+
+    public void UpdateReminderControl(){
+        if(reminderCheck.isChecked()) {
+            viewReminder.setVisibility(View.VISIBLE);
+
+            dateEdit.setText(DataManager.GetDateString(dateToUse));
+            timeEdit.setText(DataManager.GetTimeString(dateToUse));
+        }
+        else
+            viewReminder.setVisibility(View.INVISIBLE);
     }
 
     @Override
     public boolean onPrepareOptionsMenu(Menu menu) {
-
-        menu.findItem(R.id.action_delete).setVisible(false);
         return true;
     }
 
@@ -100,19 +140,55 @@ public class ToDoEdit extends AppCompatActivity {
         //noinspection SimplifiableIfStatement
         if (id == R.id.action_save) {
 
-            todoItem.Title = titleEdit.getText().toString();
-            todoItem.SetReminderString(dateEdit.getText().toString(), timeEdit.getText().toString());
+            SaveTodoItem();
+            finish();
 
-            if(position == -1)
-                DataManager.TodoItems.add(todoItem);
+            return true;
+        }
 
-            DataManager.SaveTodoItems(todoApplication);
-            ToDoEdit.this.finish();
+        if (id == R.id.action_delete) {
+
+            DeleteTodoItem();
+            finish();
 
             return true;
         }
 
         return super.onOptionsItemSelected(item);
+    }
+
+    protected void DeleteTodoItem(){
+        ReminderManager.CancelReminder(todoItem, getApplicationContext());
+
+        if(DataManager.TodoItems.containsKey(todoItem.ID)){
+            DataManager.TodoItems.remove(todoItem.ID);
+        }
+    }
+
+    protected void SaveTodoItem(){
+
+        todoItem.Title = titleEdit.getText().toString();
+        todoItem.HasReminder = reminderCheck.isChecked();
+
+        if(todoItem.HasReminder) {
+            todoItem.SetReminderString(dateEdit.getText().toString(), timeEdit.getText().toString());
+            todoItem.Notified = false;
+        }
+        else {
+            todoItem.Reminder = null;
+            ReminderManager.CancelReminder(todoItem, getApplicationContext());
+        }
+
+        DataManager.TodoItems.put(todoItem.ID, todoItem);
+
+        DataManager.SaveTodoItems(todoApplication);
+
+        if(todoItem.HasReminder)
+            ReminderManager.SetupReminder(todoItem, getApplicationContext());
+
+        if(todoItem.HasReminder)
+            Toast.makeText(getApplicationContext(), getResources().getString(R.string.reminder_created),
+                    Toast.LENGTH_LONG).show();
     }
 }
 

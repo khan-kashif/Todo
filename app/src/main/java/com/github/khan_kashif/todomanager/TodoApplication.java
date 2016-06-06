@@ -28,5 +28,7 @@ public class TodoApplication extends Application {
     public void onCreate()
     {
         super.onCreate();
+
+        DataManager.Setup(this);
     }
 }

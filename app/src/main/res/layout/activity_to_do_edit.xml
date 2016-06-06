@@ -44,10 +44,18 @@
         android:scrollbars="vertical"
         android:id="@+id/title_edit" />
 
+    <CheckBox
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:id="@+id/task_has_reminder"
+        android:text="@string/set_reminder"/>
+
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="horizontal">
+        android:orientation="horizontal"
+        android:id="@+id/view_reminder"
+        android:visibility="invisible">
 
         <Button
             android:layout_width="0dp"

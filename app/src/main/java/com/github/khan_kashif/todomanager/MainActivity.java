@@ -5,9 +5,7 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.os.Bundle;
 import android.support.design.widget.FloatingActionButton;
-import android.support.design.widget.Snackbar;
 import android.support.v7.app.AppCompatActivity;
-import android.support.v7.graphics.drawable.DrawerArrowDrawable;
 import android.support.v7.widget.Toolbar;
 import android.view.View;
 import android.view.Menu;
@@ -16,7 +14,9 @@ import android.widget.AbsListView;
 import android.widget.AdapterView;
 import android.widget.Button;
 import android.widget.CheckBox;
+import android.widget.LinearLayout;
 import android.widget.ListView;
+import android.widget.RelativeLayout;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -26,6 +26,7 @@ public class MainActivity extends AppCompatActivity {
     FloatingActionButton addButton;
 
     Button deleteButton, cancelButton;
+    LinearLayout bottomButtons;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -46,10 +47,14 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onResume(){
         super.onResume();
-        listItemAdapter.Refresh();
+
+        UpdateDeleteControls(false);
     }
 
     protected void SetupButtonEvents(){
+
+        bottomButtons = (LinearLayout)findViewById(R.id.bottom_buttons);
+
         deleteButton = (Button)findViewById(R.id.delete_button);
         deleteButton.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -65,7 +70,7 @@ public class MainActivity extends AppCompatActivity {
                             public void onClick(DialogInterface dialog, int which) {
                                 DataManager.DeleteTodoItems(TodoApplication);
                                 listItemAdapter.Refresh();
-                                HandleDeleteMenuItem();
+                                UpdateDeleteControls(false);
                             }
 
                         })
@@ -78,7 +83,7 @@ public class MainActivity extends AppCompatActivity {
         cancelButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                HandleDeleteMenuItem();
+                UpdateDeleteControls(false);
             }
         });
     }
@@ -86,7 +91,7 @@ public class MainActivity extends AppCompatActivity {
     protected void SetupListView(){
         todoListView = (ListView)findViewById(R.id.list_view_main);
 
-        listItemAdapter = new ListItemAdapter(getApplicationContext(), R.layout.list_item, DataManager.TodoItems);
+        listItemAdapter = new ListItemAdapter(getApplicationContext());
         todoListView.setAdapter(listItemAdapter);
 
         todoListView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
@@ -99,11 +104,12 @@ public class MainActivity extends AppCompatActivity {
 
     protected void HandleListItemClick(View view, int position){
 
+        TodoItem todoItem = DataManager.GetTodoItem(position);
+
         if(DataManager.IsDeleteMode) {
 
             CheckBox taskCheckbox = (CheckBox) view.findViewById(R.id.task_check);
 
-            TodoItem todoItem = DataManager.TodoItems.get(position);
             todoItem.MarkForDelete = !todoItem.MarkForDelete;
             taskCheckbox.setChecked(todoItem.MarkForDelete);
 
@@ -111,7 +117,7 @@ public class MainActivity extends AppCompatActivity {
         }
 
         Intent navigateToEdit = new Intent(MainActivity.this, ToDoEdit.class);
-        navigateToEdit.putExtra("position", position);
+        navigateToEdit.putExtra("idTodoItem", todoItem.ID);
         MainActivity.this.startActivity(navigateToEdit);
     }
 
@@ -149,33 +155,30 @@ public class MainActivity extends AppCompatActivity {
 
         //noinspection SimplifiableIfStatement
         if (id == R.id.action_delete) {
-            HandleDeleteMenuItem();
+            UpdateDeleteControls(!DataManager.IsDeleteMode);
             return true;
         }
 
         return super.onOptionsItemSelected(item);
     }
 
-    protected void HandleDeleteMenuItem(){
-        if(DataManager.IsDeleteMode){
-            DataManager.SetDeleteMode(false);
-            listItemAdapter.Refresh();
-            todoListView.setChoiceMode(AbsListView.CHOICE_MODE_SINGLE);
+    protected void UpdateDeleteControls(boolean mode){
 
-            addButton.setVisibility(View.VISIBLE);
+        DataManager.SetDeleteMode(mode);
+        listItemAdapter.Refresh();
 
-            deleteButton.setVisibility(View.INVISIBLE);
-            cancelButton.setVisibility(View.INVISIBLE);
+        if(mode){
+
+            todoListView.setChoiceMode(AbsListView.CHOICE_MODE_MULTIPLE);
+            addButton.setVisibility(View.INVISIBLE);
+            bottomButtons.setVisibility(View.VISIBLE);
 
         }else {
-            DataManager.SetDeleteMode(true);
-            listItemAdapter.Refresh();
-            todoListView.setChoiceMode(AbsListView.CHOICE_MODE_MULTIPLE);
 
-            addButton.setVisibility(View.INVISIBLE);
+            todoListView.setChoiceMode(AbsListView.CHOICE_MODE_SINGLE);
+            addButton.setVisibility(View.VISIBLE);
+            bottomButtons.setVisibility(View.INVISIBLE);
 
-            deleteButton.setVisibility(View.VISIBLE);
-            cancelButton.setVisibility(View.VISIBLE);
         }
     }
 }

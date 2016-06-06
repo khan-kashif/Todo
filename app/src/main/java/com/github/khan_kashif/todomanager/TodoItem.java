@@ -6,14 +6,22 @@ import java.util.Date;
 
 public class TodoItem {
 
-    public TodoItem(String title, Date reminder) {
+    public TodoItem(int id, String title, Date reminder, boolean hasReminder) {
+        this.ID = id;
         this.Title = title;
         this.Reminder = reminder;
+        this.HasReminder = hasReminder;
+        this.Notified = false;
+
         MarkForDelete = false;
     }
 
+    public int ID;
     public Date Reminder;
     public String Title;
+    public boolean HasReminder;
+    public boolean Notified;
+
     public boolean MarkForDelete;
 
     public void SetReminderString(String dateString, String timeString) {
@@ -32,10 +40,10 @@ public class TodoItem {
     }
 
     public String GetDateString(){
-        return new SimpleDateFormat(DataManager.DateFormat).format(Reminder);
+        return DataManager.GetDateString(Reminder);
     }
 
     public String GetTimeString(){
-        return new SimpleDateFormat(DataManager.TimeFormat).format(Reminder);
+        return DataManager.GetTimeString(Reminder);
     }
 }

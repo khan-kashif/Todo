@@ -7,5 +7,7 @@
     <string name="delete">Delete</string>
     <string name="cancel">Cancel</string>
     <string name="delete_confirm">Are you sure you want to delete?</string>
-
+    <string name="set_reminder">Set reminder</string>
+    <string name="reminder_created">Reminder created successfully</string>
+    <string name="todo_item">TODO item</string>
 </resources>
