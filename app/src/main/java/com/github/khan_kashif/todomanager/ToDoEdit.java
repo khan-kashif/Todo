@@ -51,7 +51,7 @@ public class ToDoEdit extends AppCompatActivity {
 
         idTodoItem = getIntent().getIntExtra("idTodoItem", -1);
         if(idTodoItem == -1) {
-            todoItem = new TodoItem(DataManager.GetNextID(), "", new Date(), false);
+            todoItem = new TodoItem(DataManager.GetNextID(), "", new Date(), false, false);
             idTodoItem = todoItem.ID;
         }
         else

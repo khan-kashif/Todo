@@ -7,6 +7,7 @@ import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
 import android.provider.Settings;
+import android.util.Log;
 
 /**
  * Created by Kashif on 06/06/2016.
@@ -36,7 +37,7 @@ public class ReminderManager {
         long futureInMillis = todoItem.Reminder.getTime();
 
         AlarmManager alarmManager = (AlarmManager)context.getSystemService(Context.ALARM_SERVICE);
-        alarmManager.set(AlarmManager.RTC_WAKEUP, futureInMillis, pendingIntent);
+        alarmManager.setExact(AlarmManager.RTC_WAKEUP, futureInMillis, pendingIntent);
     }
 
     public static void SetupNotification(TodoItem todoItem, Context context)

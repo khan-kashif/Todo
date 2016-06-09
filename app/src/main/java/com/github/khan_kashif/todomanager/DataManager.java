@@ -111,6 +111,7 @@ public class DataManager {
             String title;
             String reminder = null;
             boolean hasReminder;
+            boolean notified;
             Date reminderDate = null;
 
             try {
@@ -118,6 +119,7 @@ public class DataManager {
                 id = jObject.getInt("id");
                 title = jObject.getString("title");
                 hasReminder = jObject.getBoolean("hasReminder");
+                notified = jObject.getBoolean("notified");
 
                 if(hasReminder)
                     reminder = jObject.getString("reminder");
@@ -135,7 +137,7 @@ public class DataManager {
                 }
             }
 
-            TodoItem todoItem = new TodoItem(id, title, reminderDate, hasReminder);
+            TodoItem todoItem = new TodoItem(id, title, reminderDate, hasReminder, notified);
             result.put(id, todoItem);
 
             NextID = todoItem.ID;
@@ -153,6 +155,7 @@ public class DataManager {
                 jsonObject.put("id", TodoItems.get(i).ID);
                 jsonObject.put("title", TodoItems.get(i).Title);
                 jsonObject.put("hasReminder", TodoItems.get(i).HasReminder);
+                jsonObject.put("notified", TodoItems.get(i).Notified);
 
                 if(TodoItems.get(i).HasReminder)
                     jsonObject.put("reminder", TodoItems.get(i).GetReminderString(SaveDateFormat));

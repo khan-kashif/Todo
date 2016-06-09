@@ -6,12 +6,12 @@ import java.util.Date;
 
 public class TodoItem {
 
-    public TodoItem(int id, String title, Date reminder, boolean hasReminder) {
+    public TodoItem(int id, String title, Date reminder, boolean hasReminder, boolean notified) {
         this.ID = id;
         this.Title = title;
         this.Reminder = reminder;
         this.HasReminder = hasReminder;
-        this.Notified = false;
+        this.Notified = notified;
 
         MarkForDelete = false;
     }
